@@ -2,15 +2,18 @@ import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import express from 'express';
 import cors from 'cors';
+import { buildSubgraphSchema } from '@apollo/subgraph';
+import { parse } from 'graphql';
 
 // A schema is a collection of type definitions (hence "typeDefs")
 // that together define the "shape" of queries that are executed against
 // your data.
 const typeDefs = `#graphql
-  # Comments in GraphQL strings (such as this one) start with the hash (#) symbol.
+  extend schema
+    @link(url: "https://specs.apollo.dev/federation/v2.0",
+          import: ["@key", "@shareable"])
 
-  # This "Book" type defines the queryable fields for every book in our data source.
-  type Book {
+  type Book @key(fields: "id") {
     id: ID!
     title: String
     author: String
@@ -68,8 +71,10 @@ const resolvers = {
 // The ApolloServer constructor requires two parameters: your schema
 // definition and your set of resolvers.
 const server = new ApolloServer({
-    typeDefs,
-    resolvers,
+    schema: buildSubgraphSchema({
+        typeDefs: parse(typeDefs),
+        resolvers,
+    }),
 });
 
 // Create Express app
